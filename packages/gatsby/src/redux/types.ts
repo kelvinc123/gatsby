@@ -164,6 +164,12 @@ export interface IComponentState {
   errors: number
 }
 
+export interface IHtmlFileState {
+  dirty: number
+  isDeleted: boolean
+  pageQueryHash: string // TODO: change to page-data hash
+}
+
 export type GatsbyNodeAPI =
   | "onPreBoostrap"
   | "onPostBoostrap"
@@ -275,8 +281,11 @@ export interface IGatsbyState {
     }
   }
   pageDataStats: Map<SystemPath, number>
-  pageData: Map<Identifier, string>
   visitedPages: Map<string, Set<string>>
+  html: {
+    trackedHtmlFiles: Map<Identifier, IHtmlFileState>
+    browserCompilationHash: string
+  }
 }
 
 export interface ICachedReduxState {
@@ -287,10 +296,10 @@ export interface ICachedReduxState {
   staticQueryComponents: IGatsbyState["staticQueryComponents"]
   webpackCompilationHash: IGatsbyState["webpackCompilationHash"]
   pageDataStats: IGatsbyState["pageDataStats"]
-  pageData: IGatsbyState["pageData"]
   staticQueriesByTemplate: IGatsbyState["staticQueriesByTemplate"]
   pendingPageDataWrites: IGatsbyState["pendingPageDataWrites"]
   queries: IGatsbyState["queries"]
+  html: IGatsbyState["html"]
 }
 
 export type ActionsUnion =
@@ -329,7 +338,6 @@ export type ActionsUnion =
   | ISetWebpackConfigAction
   | ITouchNodeAction
   | IUpdatePluginsHashAction
-  | IRemovePageDataAction
   | ISetPageDataAction
   | ICreateJobV2Action
   | IEndJobV2Action
@@ -354,6 +362,8 @@ export type ActionsUnion =
   | IDisableTypeInferenceAction
   | ISetProgramAction
   | ISetProgramExtensions
+  | IRemovedHtml
+  | IGeneratedHtml
 
 export interface IApiFinishedAction {
   type: `API_FINISHED`
@@ -526,6 +536,7 @@ export interface IPageQueryRunAction {
     path: string
     componentPath: string
     isPage: boolean
+    resultHash: string
   }
 }
 
@@ -623,13 +634,6 @@ export interface ISetResolvedThemesAction {
 export interface IDeleteCacheAction {
   type: `DELETE_CACHE`
   cacheIsCorrupt?: boolean
-}
-
-export interface IRemovePageDataAction {
-  type: `REMOVE_PAGE_DATA`
-  payload: {
-    id: Identifier
-  }
 }
 
 export interface ISetPageDataAction {
@@ -815,5 +819,15 @@ interface ISetProgramAction {
 
 interface ISetProgramExtensions {
   type: `SET_PROGRAM_EXTENSIONS`
+  payload: Array<string>
+}
+
+interface IRemovedHtml {
+  type: `HTML_REMOVED`
+  payload: string
+}
+
+interface IGeneratedHtml {
+  type: `HTML_GENERATED`
   payload: Array<string>
 }

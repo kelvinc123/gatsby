@@ -6,7 +6,7 @@ import telemetry from "gatsby-telemetry"
 import { chunk } from "lodash"
 import webpack from "webpack"
 
-import { emitter } from "../redux"
+import { emitter, store } from "../redux"
 import webpackConfig from "../utils/webpack.config"
 import { structureWebpackErrors } from "../utils/webpack-error-utils"
 
@@ -151,6 +151,11 @@ const renderHTMLQueue = async (
       envVars,
       htmlComponentRendererPath,
       paths: pageSegment,
+    })
+
+    store.dispatch({
+      type: `HTML_GENERATED`,
+      payload: pageSegment,
     })
 
     if (activity && activity.tick) {
