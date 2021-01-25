@@ -189,14 +189,6 @@ module.exports = async function build(program: IBuildArgs): Promise<void> {
   // we need to save it again to make sure our latest state has been saved
   await db.saveState()
 
-  const { toRegenerate, toDelete } = process.env
-    .GATSBY_EXPERIMENTAL_PAGE_BUILD_ON_DATA_CHANGES
-    ? calcDirtyHtmlFiles(store.getState())
-    : {
-        toRegenerate: [...store.getState().pages.keys()],
-        toDelete: [],
-      }
-
   const buildSSRBundleActivityProgress = report.activityTimer(
     `Building HTML renderer`,
     { parentSpan: buildSpan }
@@ -210,6 +202,14 @@ module.exports = async function build(program: IBuildArgs): Promise<void> {
   } finally {
     buildSSRBundleActivityProgress.end()
   }
+
+  const { toRegenerate, toDelete } = process.env
+    .GATSBY_EXPERIMENTAL_PAGE_BUILD_ON_DATA_CHANGES
+    ? calcDirtyHtmlFiles(store.getState())
+    : {
+        toRegenerate: [...store.getState().pages.keys()],
+        toDelete: [],
+      }
 
   const buildHTMLActivityProgress = report.createProgress(
     `Building static HTML for pages`,

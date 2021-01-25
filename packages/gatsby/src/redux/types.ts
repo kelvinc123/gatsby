@@ -285,6 +285,7 @@ export interface IGatsbyState {
   html: {
     trackedHtmlFiles: Map<Identifier, IHtmlFileState>
     browserCompilationHash: string
+    ssrCompilationHash: string
   }
 }
 
@@ -335,6 +336,7 @@ export type ActionsUnion =
   | ISetGraphQLDefinitionsAction
   | ISetSiteFlattenedPluginsAction
   | ISetWebpackCompilationHashAction
+  | ISetSSRWebpackCompilationHashAction
   | ISetWebpackConfigAction
   | ITouchNodeAction
   | IUpdatePluginsHashAction
@@ -699,6 +701,11 @@ export interface IRemoveStaticQuery {
 export interface ISetWebpackCompilationHashAction {
   type: `SET_WEBPACK_COMPILATION_HASH`
   payload: IGatsbyState["webpackCompilationHash"]
+}
+
+export interface ISetSSRWebpackCompilationHashAction {
+  type: `SET_SSR_WEBPACK_COMPILATION_HASH`
+  payload: string
 }
 
 export interface IUpdatePluginsHashAction {
