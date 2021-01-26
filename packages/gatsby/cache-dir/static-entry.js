@@ -14,6 +14,7 @@ const {
   concat,
   memoize,
 } = require(`lodash`)
+const { StaticQueryContext } = require(`gatsby`)
 
 const { RouteAnnouncerProps } = require(`./route-announcer-props`)
 const apiRunner = require(`./api-runner-ssr`)
@@ -62,8 +63,10 @@ const getPageDataUrl = pagePath => {
   return `${__PATH_PREFIX__}/${pageDataPath}`
 }
 
+const getStaticQueryPath = hash => join(`page-data`, `sq`, `d`, `${hash}.json`)
+
 const getStaticQueryUrl = hash =>
-  `${__PATH_PREFIX__}/page-data/sq/d/${hash}.json`
+  `${__PATH_PREFIX__}/${getStaticQueryPath(hash)}`
 
 const getPageData = pagePath => {
   const pageDataPath = getPageDataPath(pagePath)
@@ -76,6 +79,20 @@ const getPageData = pagePath => {
     return null
   }
 }
+
+// TODO: verify if memoization is safe given that results can change
+const getStaticQueryResult = memoize(hash => {
+  const staticQueryPath = getStaticQueryPath(hash)
+  const absoluteStaticQueryPath = join(process.cwd(), `public`, staticQueryPath)
+  const staticQueryRaw = fs.readFileSync(absoluteStaticQueryPath)
+
+  try {
+    return JSON.parse(staticQueryRaw.toString())
+  } catch (err) {
+    console.error(err)
+    return null
+  }
+})
 
 const appDataPath = join(`page-data`, `app-data.json`)
 
@@ -201,6 +218,17 @@ export default (pagePath, callback) => {
   }
 
   const pageData = getPageData(pagePath)
+
+  const staticQueryContext = pageData.staticQueryHashes.reduce(
+    (staticQueryResults, staticQueryHash) => {
+      staticQueryResults[staticQueryHash] = getStaticQueryResult(
+        staticQueryHash
+      )
+      return staticQueryResults
+    },
+    {}
+  )
+
   const pageDataUrl = getPageDataUrl(pagePath)
 
   const appDataUrl = getAppDataUrl()
@@ -249,14 +277,18 @@ export default (pagePath, callback) => {
     </ServerLocation>
   )
 
-  const bodyComponent = apiRunner(
-    `wrapRootElement`,
-    { element: routerElement, pathname: pagePath },
-    routerElement,
-    ({ result }) => {
-      return { element: result, pathname: pagePath }
-    }
-  ).pop()
+  const bodyComponent = (
+    <StaticQueryContext.Provider value={staticQueryContext}>
+      {apiRunner(
+        `wrapRootElement`,
+        { element: routerElement, pathname: pagePath },
+        routerElement,
+        ({ result }) => {
+          return { element: result, pathname: pagePath }
+        }
+      ).pop()}
+    </StaticQueryContext.Provider>
+  )
 
   // Let the site or plugin render the page component.
   apiRunner(`replaceRenderer`, {
