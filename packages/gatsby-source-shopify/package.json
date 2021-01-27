@@ -28,8 +28,8 @@
     "gatsby": "^2.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.12.1",
-    "@babel/core": "^7.12.3",
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
     "cross-env": "^7.0.3"
   },
   "dependencies": {

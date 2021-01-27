@@ -10,8 +10,8 @@
     "@babel/runtime": "^7.12.5"
   },
   "devDependencies": {
-    "@babel/cli": "^7.12.1",
-    "@babel/core": "^7.12.3",
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
     "babel-plugin-dev-expression": "^0.2.2",
     "babel-preset-gatsby-package": "^0.12.0-next.0",
     "cross-env": "^7.0.3",
