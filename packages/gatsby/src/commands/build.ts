@@ -57,6 +57,7 @@ interface IBuildArgs extends IProgram {
   profile: boolean
   graphqlTracing: boolean
   openTracingConfigFile: string
+  keepPageRenderer: boolean
 }
 
 module.exports = async function build(program: IBuildArgs): Promise<void> {
@@ -245,6 +246,11 @@ module.exports = async function build(program: IBuildArgs): Promise<void> {
     buildSSRBundleActivityProgress.end()
   }
 
+  telemetry.addSiteMeasurement(`BUILD_END`, {
+    pagesCount: pagePaths.length, // number of html files that will be written
+    totalPagesCount: store.getState().pages.size, // total number of pages
+  })
+
   const buildHTMLActivityProgress = report.createProgress(
     `Building static HTML for pages`,
     pagePaths.length,
@@ -284,10 +290,12 @@ module.exports = async function build(program: IBuildArgs): Promise<void> {
   }
   buildHTMLActivityProgress.end()
 
-  try {
-    await deleteRenderer(pageRenderer)
-  } catch (err) {
-    // pass through
+  if (!program.keepPageRenderer) {
+    try {
+      await deleteRenderer(pageRenderer)
+    } catch (err) {
+      // pass through
+    }
   }
 
   let deletedPageKeys: Array<string> = []

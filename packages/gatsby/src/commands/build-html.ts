@@ -2,10 +2,10 @@ import Bluebird from "bluebird"
 import fs from "fs-extra"
 import reporter from "gatsby-cli/lib/reporter"
 import { createErrorFromString } from "gatsby-cli/lib/reporter/errors"
-import telemetry from "gatsby-telemetry"
 import { chunk } from "lodash"
 import webpack from "webpack"
 
+import { emitter } from "../redux"
 import webpackConfig from "../utils/webpack.config"
 import { structureWebpackErrors } from "../utils/webpack-error-utils"
 
@@ -13,6 +13,30 @@ import { IProgram, Stage } from "./types"
 
 type IActivity = any // TODO
 type IWorkerPool = any // TODO
+
+export interface IWebpackWatchingPauseResume extends webpack.Watching {
+  suspend: () => void
+  resume: () => void
+}
+
+let devssrWebpackCompiler: webpack.Compiler
+let devssrWebpackWatcher: IWebpackWatchingPauseResume
+let needToRecompileSSRBundle = true
+export const getDevSSRWebpack = (): Record<
+  IWebpackWatchingPauseResume,
+  webpack.Compiler,
+  needToRecompileSSRBundle
+> => {
+  if (process.env.gatsby_executing_command !== `develop`) {
+    throw new Error(`This function can only be called in development`)
+  }
+
+  return {
+    devssrWebpackWatcher,
+    devssrWebpackCompiler,
+    needToRecompileSSRBundle,
+  }
+}
 
 let oldHash = ``
 let newHash = ``
@@ -34,11 +58,19 @@ const runWebpack = (
       process.env.GATSBY_EXPERIMENTAL_DEV_SSR &&
       stage === `develop-html`
     ) {
-      webpack(compilerConfig).watch(
+      devssrWebpackCompiler = webpack(compilerConfig)
+      devssrWebpackCompiler.hooks.invalid.tap(`ssr file invalidation`, file => {
+        needToRecompileSSRBundle = true
+      })
+      devssrWebpackWatcher = devssrWebpackCompiler.watch(
         {
           ignored: /node_modules/,
         },
         (err, stats) => {
+          needToRecompileSSRBundle = false
+          emitter.emit(`DEV_SSR_COMPILATION_DONE`)
+          devssrWebpackWatcher.suspend()
+
           if (err) {
             return reject(err)
           } else {
@@ -149,10 +181,6 @@ export const doBuildPages = async (
   activity: IActivity,
   workerPool: IWorkerPool
 ): Promise<void> => {
-  telemetry.addSiteMeasurement(`BUILD_END`, {
-    pagesCount: pagePaths.length,
-  })
-
   try {
     await renderHTMLQueue(workerPool, activity, rendererPath, pagePaths)
   } catch (error) {
